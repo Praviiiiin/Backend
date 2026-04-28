@@ -17,7 +17,7 @@ app.get("/", (req, res) => {
 
 app.use("/api/v1/users", userRouter);
 
-// ✅ Add this 404 handler at the end
+
 app.use((req, res) => {
   console.log(`404 - Route not found: ${req.method} ${req.path}`);
   res.status(404).json({ error: "Not found" });
