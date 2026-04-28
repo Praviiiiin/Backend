@@ -11,13 +11,16 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(cookieParser()); 
 
 app.get("/", (req, res) => {
-  console.log("GET / route HIT");  // ✅ Add this
+  console.log("GET / route HIT"); 
   res.send("Server working");
 });
 
 app.use("/api/v1/users", userRouter);
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 6813c51b9b875a54ef2a893aa05b031a3f9dfcdb
 app.use((req, res) => {
   console.log(`404 - Route not found: ${req.method} ${req.path}`);
   res.status(404).json({ error: "Not found" });
