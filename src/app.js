@@ -10,20 +10,31 @@ app.use(express.json({limit: "16kb"}));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(cookieParser()); 
 
-app.get("/", (req, res) => {
+app.get("/", (req, res, next) => {
   console.log("GET / route HIT"); 
   res.send("Server working");
 });
 
 app.use("/api/v1/users", userRouter);
 
-<<<<<<< HEAD
 
-=======
->>>>>>> 6813c51b9b875a54ef2a893aa05b031a3f9dfcdb
-app.use((req, res) => {
+app.use((req, res, next) => {
   console.log(`404 - Route not found: ${req.method} ${req.path}`);
   res.status(404).json({ error: "Not found" });
+});
+
+
+app.use((err, req, res, next) => {
+  console.error("Full Error Object:", err);  
+  console.error("Error Constructor:", err.constructor.name);
+  const statusCode = err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
+  
+  res.status(statusCode).json({
+    success: false,
+    statusCode,
+    message,
+  });
 });
 
 console.log("Routes setup complete");
