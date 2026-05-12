@@ -156,7 +156,7 @@ const logoutUser = asyncHandler(async(req, res) => {
 const refreshAccessToken = asyncHandler(async (req, res) => {
     const incomingRefreshToken =req.cookies.refreshToken || req.body.refreshToken
 
-    if (incomingRefreshToken) {
+    if (!incomingRefreshToken) {
         throw new ApiError
     }
 
@@ -194,8 +194,119 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     }
 })
 
+
+const changeCurrentPassword = asyncHandler(async(req, res) => {
+    const {oldPassword, newPassword} = req.body
+
+    const user = await User.findById(req.user?._id)
+    const isPasswordCorrect = user.isPasswordCorrect(oldPassword)
+
+    if (!isPasswordCorrect) {
+        throw new ApiError(400, "Invalid Old Password")
+    }
+
+    user.password = newPassword
+    await user.save({validateBeforeSave: false})
+
+    return res.status(200).json(new ApiResponse(200, {}, "Password changed successfully"))
+
+})
+
+const getCurrentUser = asyncHandler(async(req, res) => {
+    return res.status(200).json(200, req.user, "Current user fetched successfully")
+})
+
+ const updateAccountDetails = asyncHandler(async(req, res) => {
+    const {fullname, email} = req.body
+
+    if (!fullname || !email) {
+        throw new ApiError(401, "Both fields are required")
+    }
+
+    User.findByIdAndUpdate(req.user?._id, {
+        $set: {
+            fullname,
+            email
+        }
+    }, {new:true}).select("-password")
+
+    return res.status(200).json(new ApiResponse(200, user, "Acc details updated successfully"))
+ })
+
+ const getUserChannelProfile = asyncHandler(async(req, res) => {
+     const {username} = req.params
+
+     if (!username?.trim) {
+        throw new ApiError(400, "Username is missing")
+     }
+
+     const channel = await User.aggregate([
+        {
+            $match: {
+                username: username?.toLowerCase()
+            }
+        },
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "channel",
+                as: "subscribers"
+            }
+        },
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber",
+                as: "subscribedTo"
+            }
+        },
+        {
+            $addFields: {
+                subscribersCount: {
+                    $size: "$subscribers"
+                },
+                channelSubscribedToCount: {
+                    $size: "$subscribed"
+                },
+                isSubscribed: {
+                    $cond: {
+                        if: {$sin: [req.user?._id, "$subscribers.subscriber"]}, 
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+        }, 
+        {
+            $projects: {
+                fullname: 1,
+                username: 1,
+                subscribersCount: 1,
+                channelSubscribedToCount: 1,
+                isSubscribed: 1, 
+                email: 1
+            }
+        }
+     ])
+
+      if(!channel?.length) {
+    throw new ApiError(404, "Channel does not exists")
+    }
+
+    return res.status(200).json(new ApiResponse(200, channel[0], "Channel Fetched Successfully"))
+
+
+ })
+
+
 export {
     loginUser,
     logoutUser, 
-    refreshAccessToken
+    refreshAccessToken,
+    changeCurrentPassword,
+    getCurrentUser,
+    updateAccountDetails,
+    getUserChannelProfile
 }
